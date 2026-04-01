@@ -1,0 +1,108 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── VS Code Dark theme (EverSense palette) ── */
+:root {
+  --bg-primary:   #1e1e1e;
+  --bg-card:      #252526;
+  --bg-sidebar:   #252526;
+  --bg-input:     #3c3c3c;
+  --bg-chip-type: #3c3c3c;
+  --bg-calendar-empty: #1e1e1e;
+
+  --border:       #3c3c3c;
+  --border-light: #454545;
+  --border-input: #3c3c3c;
+
+  --accent:       #007acc;
+  --accent-light: #4fc1ff;
+  --accent-tint:  rgba(0, 122, 204, 0.13);
+
+  --text-primary:   #f0f0f0;
+  --text-secondary: #c0c0c0;
+  --text-muted:     #909090;
+  --text-subtle:    #6a6a6a;
+  --text-faint:     #4d4d4d;
+  --text-inactive:  #909090;
+  --text-hover:     #f0f0f0;
+  --text-chip-type: #909090;
+
+  /* Status colours — same semantics, VS-adjusted */
+  --color-teal:   #4ec9b0;
+  --color-yellow: #dcdcaa;
+  --color-orange: #ce9178;
+  --color-purple: #c586c0;
+  --color-red:    #f44747;
+  --color-green:  #6a9955;
+  --color-blue:   #569cd6;
+
+  /* shadcn/ui tokens */
+  --radius: 0.625rem;
+  --background: #1e1e1e;
+  --foreground: #f0f0f0;
+  --card: #252526;
+  --card-foreground: #f0f0f0;
+  --popover: #252526;
+  --popover-foreground: #f0f0f0;
+  --primary: #007acc;
+  --primary-foreground: #ffffff;
+  --secondary: #3c3c3c;
+  --secondary-foreground: #f0f0f0;
+  --muted: #252526;
+  --muted-foreground: #909090;
+  --accent-ui: #3c3c3c;
+  --accent-foreground: #f0f0f0;
+  --destructive: #f44747;
+  --border-color: #3c3c3c;
+  --input: #3c3c3c;
+  --ring: #007acc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent-ui);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border-color);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  html, body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  body { min-height: 100vh; }
+}
