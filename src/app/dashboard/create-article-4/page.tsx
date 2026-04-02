@@ -232,7 +232,7 @@ export default function CreateArticle4Page() {
       form.append('file', file);
       try {
         const res = await fetch('/api/extract-text', { method: 'POST', body: form });
-        if (!res.ok) { setError(`Failed to extract text from ${file.name}`); continue; }
+        if (!res.ok) { const d = await res.json().catch(() => null); setError(d?.error || `Failed to extract text from ${file.name}`); continue; }
         const { text } = await res.json();
         setArticles(a => a.map((art, j) => j === articleIdx
           ? { ...art, fileContents: [...art.fileContents, text], fileNames: [...art.fileNames, file.name] }

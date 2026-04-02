@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ text });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = err instanceof Error ? `${err.message}\n${err.stack}` : 'Unknown error';
+    console.error('[extract-text] Error:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
