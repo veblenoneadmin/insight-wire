@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import getPool from '@/lib/db';
 
 async function ensureTable() {
+  const pool = await getPool();
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS saved_sources (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -17,6 +18,7 @@ async function ensureTable() {
 export async function GET() {
   try {
     await ensureTable();
+    const pool = await getPool();
     const [rows] = await pool.execute('SELECT * FROM saved_sources ORDER BY created_at DESC');
     return NextResponse.json({ sources: rows });
   } catch (err: unknown) {
@@ -28,6 +30,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     await ensureTable();
+    const pool = await getPool();
     const body = await req.json();
     const { url, title, source_type, rationale } = body;
     if (!url || !title) {

@@ -1,5 +1,11 @@
-import mysql from 'mysql2/promise';
+import type { Pool } from 'mysql2/promise';
 
-const pool = mysql.createPool(process.env.DATABASE_URL!);
+let pool: Pool | null = null;
 
-export default pool;
+export default async function getPool(): Promise<Pool> {
+  if (!pool) {
+    const mysql = await import('mysql2/promise');
+    pool = mysql.createPool(process.env.DATABASE_URL!);
+  }
+  return pool;
+}
