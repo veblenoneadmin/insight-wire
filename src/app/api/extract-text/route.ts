@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 async function extractPdf(buffer: Buffer): Promise<string> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const pdf = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise;
-  const parts: string[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item: unknown) => (item as { str?: string }).str ?? '')
-      .join(' ');
-    parts.push(pageText);
-  }
-  return parts.join('\n');
+  const { extractText } = await import('unpdf');
+  const { text } = await extractText(new Uint8Array(buffer));
+  return Array.isArray(text) ? text.join('\n') : text;
 }
 
 export async function POST(req: NextRequest) {
