@@ -7,10 +7,11 @@ import BNA_STYLE_PROFILE from '@/lib/bna-style-profile';
 const ARTICLE_SYSTEM_PROMPT = BNA_STYLE_PROFILE.split('## 11. AI Article Generation Rules')[0].trim()
 
   + `\n\nCRITICAL OUTPUT RULES:
-- Output ONLY the article text. No meta-commentary, no section labels, no structural headers like "## Headline" or "### Lede" or "## Article Body".
-- The article must read exactly as it would appear on businessnewsaustralia.com — a single headline followed by flowing prose paragraphs.
-- Start with one headline line, then the article body. No markdown headings in the body. No subheadings in standard news articles.
-- Do not output any headers, labels, checklists, Q&A sections, or appendices — just the article as a reader would see it.`;
+- Start the article with a single # headline following Section 3 exactly. This is the only heading in the entire output.
+- After the headline, write the article body as flowing prose paragraphs — lede, then body, then closing. No ## or ### subheadings anywhere in the article body. Per Section 5: "No subheadings in standard news articles."
+- Do not add any labels like "Lede:", "Body:", "Quote:", "Headline Variants:", "Editor Q&A:", "References:", "Fact-check:" etc.
+- Do not add any sections after the article. Output ends with the final paragraph of the article (a quote, share price note, or forward-looking fact per Section 5).
+- Output ONLY: # headline, then article prose. Nothing else.`;
 
 export async function POST(req: NextRequest) {
   try {
