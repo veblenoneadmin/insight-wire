@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
+import { Plus, ChevronRight, Copy, Download, Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Loader2, Upload } from 'lucide-react';
 
 // ── VS Dark palette ───────────────────────────────────────
 const VS = {
@@ -43,7 +43,7 @@ const LOADING_MSGS = [
   ['Almost there…', 'Applying final formatting'],
 ];
 
-type ArticleInput  = { topic: string; sources: string[] };
+type ArticleInput  = { topic: string; sources: string[]; fileContents: string[]; fileNames: string[] };
 type ArticleResult = { index: number; topic: string; articleText: string };
 
 // ── BNA Preview ───────────────────────────────────────────
@@ -183,7 +183,7 @@ export default function CreateArticle4Page() {
   const [mode, setMode]             = useState<'editor' | 'categorical'>('editor');
   const [tone, setTone]             = useState('Authoritative');
   const [mood, setMood]             = useState('News Report');
-  const [articles, setArticles]     = useState<ArticleInput[]>([{ topic: '', sources: [''] }]);
+  const [articles, setArticles]     = useState<ArticleInput[]>([{ topic: '', sources: [''], fileContents: [], fileNames: [] }]);
   const [categories, setCategories] = useState(['', '', '']);
   const [wordCount, setWordCount]   = useState('');
   const [catWordCount, setCatWordCount] = useState('');
@@ -217,7 +217,7 @@ export default function CreateArticle4Page() {
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
-  const addArticle     = () => setArticles(a => [...a, { topic: '', sources: [''] }]);
+  const addArticle     = () => setArticles(a => [...a, { topic: '', sources: [''], fileContents: [], fileNames: [] }]);
   const removeArticle  = (i: number) => setArticles(a => a.filter((_, j) => j !== i));
   const updateTopic    = (i: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, topic: v } : art));
   const addSource      = (i: number) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: [...art.sources, ''] } : art));
@@ -225,11 +225,37 @@ export default function CreateArticle4Page() {
   const updateSource   = (i: number, si: number, v: string) => setArticles(a => a.map((art, j) => j === i ? { ...art, sources: art.sources.map((s, k) => k === si ? v : s) } : art));
   const updateCategory = (i: number, v: string) => setCategories(c => c.map((cat, j) => j === i ? v : cat));
 
+  const handleFileUpload = async (articleIdx: number, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    for (const file of Array.from(files)) {
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const res = await fetch('/api/extract-text', { method: 'POST', body: form });
+        if (!res.ok) { setError(`Failed to extract text from ${file.name}`); continue; }
+        const { text } = await res.json();
+        setArticles(a => a.map((art, j) => j === articleIdx
+          ? { ...art, fileContents: [...art.fileContents, text], fileNames: [...art.fileNames, file.name] }
+          : art
+        ));
+      } catch {
+        setError(`Failed to process ${file.name}`);
+      }
+    }
+  };
+
+  const removeFile = (articleIdx: number, fileIdx: number) => {
+    setArticles(a => a.map((art, j) => j === articleIdx
+      ? { ...art, fileContents: art.fileContents.filter((_, k) => k !== fileIdx), fileNames: art.fileNames.filter((_, k) => k !== fileIdx) }
+      : art
+    ));
+  };
+
   const handleGenerate = async () => {
     setError('');
     if (mode === 'editor') {
-      if (!articles.some(a => a.sources.some(s => s.trim()))) {
-        setError('Please provide at least one source URL.'); return;
+      if (!articles.some(a => a.sources.some(s => s.trim()) || a.fileContents.length > 0)) {
+        setError('Please provide at least one source URL or file.'); return;
       }
     } else {
       if (!categories.some(c => c.trim())) {
@@ -242,8 +268,8 @@ export default function CreateArticle4Page() {
       let payload: object;
       if (mode === 'editor') {
         const arts = articles
-          .map(a => ({ sources: a.sources.filter(s => s.trim()), topic: a.topic.trim() }))
-          .filter(a => a.sources.length > 0);
+          .map(a => ({ sources: a.sources.filter(s => s.trim()), topic: a.topic.trim(), fileContents: a.fileContents }))
+          .filter(a => a.sources.length > 0 || a.fileContents.length > 0);
         payload = { articles: arts, tone, mood, ...(wordCount ? { wordCount: parseInt(wordCount) } : {}) };
       } else {
         const wl = whitelist.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
@@ -353,7 +379,24 @@ export default function CreateArticle4Page() {
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => addSource(i)} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer' }}>+ Source</button>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button onClick={() => addSource(i)} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer' }}>+ Source</button>
+                        <label style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Upload size={10} /> Upload file
+                          <input type="file" accept=".pdf,.doc,.docx,.txt" multiple style={{ display: 'none' }} onChange={e => handleFileUpload(i, e.target.files)} />
+                        </label>
+                      </div>
+                      {art.fileNames.length > 0 && (
+                        <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={lbl}>Uploaded files</label>
+                          {art.fileNames.map((name, fi) => (
+                            <div key={fi} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: VS.accentGlow, borderRadius: '4px', fontSize: '11px', color: VS.text1, fontFamily: 'monospace' }}>
+                              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                              <button onClick={() => removeFile(i, fi)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {articles.length < 5 && (

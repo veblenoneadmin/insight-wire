@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         : `${topicBlock}Using the source material below, write an original BNA-style business news article. Output the article only.${sourceBlock}`;
 
       const message = await client.messages.create({
-        model: 'claude-opus-4-6',
+        model: 'claude-sonnet-4-5-20250514',
         max_tokens: 3000,
         system: BNA_STYLE_PROFILE,
         messages: [{ role: 'user', content: userPrompt }],
