@@ -336,7 +336,9 @@ export default function CreateArticle4Page() {
               <div style={{ marginBottom: '18px' }}>
                 <label style={lbl}>Editorial Brief — from hard sources only</label>
                 <div style={{ padding: '14px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '8px', fontSize: '13px', color: VS.text0, lineHeight: 1.7 }}>
-                  {brief}
+                  {brief.replace(/\*\*/g, '').replace(/\*/g, '').replace(/^#+\s*/gm, '').replace(/^[-•]\s*/gm, '• ').split('\n').map((line, i) => (
+                    <span key={i}>{line}{i < brief.split('\n').length - 1 && <br />}</span>
+                  ))}
                 </div>
               </div>
 
