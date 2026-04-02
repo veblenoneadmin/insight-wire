@@ -33,7 +33,7 @@ function mdToHtml(text: string): string {
 
 // ── Types ─────────────────────────────────────────────────
 type SourceItem = { id: string; label: string; type: string; text: string };
-type SoftSuggestion = { source_type: string; description: string; search_query: string; status: 'pending' | 'promoted' | 'discarded' };
+type SoftSuggestion = { source_type: string; description: string; search_query: string; status: 'pending' | 'promoted' | 'discarded'; additionalPrompt: string };
 type ReferenceItem = { index: number; claim: string; source_title: string; source_type: string; origin: string; source_id: string; url: string | null };
 type ChecklistItem = { item: string; pass: boolean };
 
@@ -58,6 +58,7 @@ export default function CreateArticle4Page() {
   const [briefLoading, setBriefLoading]     = useState(false);
   const [softSuggestions, setSoftSuggestions] = useState<SoftSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
   const [briefConfirmed, setBriefConfirmed] = useState(false);
   const [scrapedSources, setScrapedSources] = useState<SourceItem[]>([]);
 
@@ -151,7 +152,7 @@ export default function CreateArticle4Page() {
       });
       if (sugRes.ok) {
         const sugData = await sugRes.json();
-        setSoftSuggestions((sugData.suggestions || []).map((s: Omit<SoftSuggestion, 'status'>) => ({ ...s, status: 'pending' as const })));
+        setSoftSuggestions((sugData.suggestions || []).map((s: Omit<SoftSuggestion, 'status' | 'additionalPrompt'>) => ({ ...s, status: 'pending' as const, additionalPrompt: '' })));
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Brief generation failed');
@@ -331,24 +332,44 @@ export default function CreateArticle4Page() {
                     <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>Finding relevant sources…</span>
                   </div>
                 )}
-                {softSuggestions.map((sug, i) => (
-                  <div key={i} style={{ padding: '10px 12px', background: sug.status === 'promoted' ? 'rgba(78,201,176,0.08)' : sug.status === 'discarded' ? 'rgba(244,71,71,0.05)' : VS.bg2, border: `1px solid ${sug.status === 'promoted' ? 'rgba(78,201,176,0.3)' : sug.status === 'discarded' ? 'rgba(244,71,71,0.2)' : VS.border}`, borderRadius: '6px', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '3px', background: 'rgba(86,156,214,0.15)', color: VS.blue }}>{sug.source_type}</span>
-                      {sug.status === 'promoted' && <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.success }}>PROMOTED</span>}
-                      {sug.status === 'discarded' && <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.error }}>DISCARDED</span>}
-                    </div>
-                    <div style={{ fontSize: '12px', color: VS.text1, lineHeight: 1.5, marginBottom: '6px' }}>{sug.description}</div>
-                    <div style={{ fontSize: '10px', color: VS.text2, fontFamily: 'monospace', marginBottom: '8px' }}>Search: {sug.search_query}</div>
-                    {sug.status === 'pending' && (
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button onClick={() => updateSuggestionStatus(i, 'promoted')} style={{ ...pillBtn(false), display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: VS.success, borderColor: 'rgba(78,201,176,0.3)' }}><ThumbsUp size={10} /> Promote</button>
-                        <button onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(sug.search_query)}`, '_blank')} style={{ ...pillBtn(false), display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px' }}><Eye size={10} /> View</button>
-                        <button onClick={() => updateSuggestionStatus(i, 'discarded')} style={{ ...pillBtn(false), display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: VS.error, borderColor: 'rgba(244,71,71,0.3)' }}><ThumbsDown size={10} /> Discard</button>
+                {softSuggestions.map((sug, i) => {
+                  const isSelected = selectedSuggestion === i;
+                  return (
+                    <div key={i}
+                      onClick={() => sug.status === 'pending' && setSelectedSuggestion(isSelected ? null : i)}
+                      style={{ padding: '10px 12px', background: sug.status === 'promoted' ? 'rgba(78,201,176,0.08)' : sug.status === 'discarded' ? 'rgba(244,71,71,0.05)' : isSelected ? 'rgba(86,156,214,0.08)' : VS.bg2, border: `1px solid ${sug.status === 'promoted' ? 'rgba(78,201,176,0.3)' : sug.status === 'discarded' ? 'rgba(244,71,71,0.2)' : isSelected ? 'rgba(86,156,214,0.4)' : VS.border}`, borderRadius: '6px', marginBottom: '8px', cursor: sug.status === 'pending' ? 'pointer' : 'default', transition: 'border-color 0.15s' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '3px', background: 'rgba(86,156,214,0.15)', color: VS.blue }}>{sug.source_type}</span>
+                        {sug.status === 'promoted' && <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.success }}>PROMOTED</span>}
+                        {sug.status === 'discarded' && <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.error }}>DISCARDED</span>}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div style={{ fontSize: '12px', color: VS.text1, lineHeight: 1.5, marginBottom: '6px' }}>{sug.description}</div>
+                      <div style={{ fontSize: '10px', color: VS.text2, fontFamily: 'monospace', marginBottom: '8px' }}>Search: {sug.search_query}</div>
+
+                      {/* Expanded panel when selected */}
+                      {isSelected && sug.status === 'pending' && (
+                        <div onClick={e => e.stopPropagation()} style={{ marginBottom: '8px' }}>
+                          <label style={lbl}>Additional instructions (optional)</label>
+                          <textarea
+                            value={sug.additionalPrompt}
+                            onChange={e => setSoftSuggestions(prev => prev.map((s, j) => j === i ? { ...s, additionalPrompt: e.target.value } : s))}
+                            placeholder="e.g. Focus on the revenue figures from this source, ignore the opinion sections…"
+                            rows={3}
+                            style={{ ...inp, fontFamily: 'monospace', fontSize: '11px', lineHeight: 1.5, resize: 'vertical' }}
+                          />
+                        </div>
+                      )}
+
+                      {sug.status === 'pending' && (
+                        <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
+                          <button onClick={() => updateSuggestionStatus(i, 'promoted')} style={{ ...pillBtn(false), display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: VS.success, borderColor: 'rgba(78,201,176,0.3)' }}><ThumbsUp size={10} /> Promote</button>
+                          <button onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(sug.search_query)}`, '_blank')} style={{ ...pillBtn(false), display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px' }}><Eye size={10} /> View</button>
+                          <button onClick={() => updateSuggestionStatus(i, 'discarded')} style={{ ...pillBtn(false), display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9px', color: VS.error, borderColor: 'rgba(244,71,71,0.3)' }}><ThumbsDown size={10} /> Discard</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* ── Confirm Brief & Generate ── */}
