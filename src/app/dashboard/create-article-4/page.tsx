@@ -47,6 +47,7 @@ export default function CreateArticle4Page() {
   const [sourceUrls, setSourceUrls] = useState<string[]>(['']);
   const [fileContents, setFileContents] = useState<string[]>([]);
   const [fileNames, setFileNames]       = useState<string[]>([]);
+  const [pastedTexts, setPastedTexts]   = useState<string[]>([]);
   const [topic, setTopic]               = useState('');
   const [error, setError]               = useState('');
 
@@ -114,8 +115,9 @@ export default function CreateArticle4Page() {
   const handleGenerateBrief = async () => {
     setError('');
     const urls = sourceUrls.filter(s => s.trim());
-    if (urls.length === 0 && fileContents.length === 0) {
-      setError('Please provide at least one hard source (URL or file).'); return;
+    const texts = pastedTexts.filter(s => s.trim());
+    if (urls.length === 0 && fileContents.length === 0 && texts.length === 0) {
+      setError('Please provide at least one hard source (URL, file, or pasted text).'); return;
     }
     setBriefLoading(true);
     setBrief('');
@@ -127,7 +129,7 @@ export default function CreateArticle4Page() {
       const res = await fetch('/api/generate-brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sources: urls, fileContents, topic }),
+        body: JSON.stringify({ sources: urls, fileContents: [...fileContents, ...texts], topic }),
       });
       if (!res.ok) { const d = await res.json().catch(() => null); setError(d?.error || `Brief generation failed: HTTP ${res.status}`); return; }
       const data = await res.json();
@@ -269,6 +271,26 @@ export default function CreateArticle4Page() {
               ))}
             </div>
           )}
+
+          <div style={{ marginBottom: '14px' }}>
+            <label style={lbl}>Hard Sources — Pasted Text</label>
+            {pastedTexts.map((txt, i) => (
+              <div key={i} style={{ marginBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.accent, background: VS.accentGlow, padding: '2px 6px', borderRadius: '3px', fontWeight: 600 }}>TEXT {i + 1}</span>
+                  <button onClick={() => setPastedTexts(prev => prev.filter((_, j) => j !== i))} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '3px', border: '1px solid rgba(244,71,71,0.3)', background: 'rgba(244,71,71,0.05)', color: VS.error, cursor: 'pointer' }}>Remove</button>
+                </div>
+                <textarea
+                  value={txt}
+                  onChange={e => setPastedTexts(prev => prev.map((t, j) => j === i ? e.target.value : t))}
+                  rows={4}
+                  placeholder="Paste raw text here — press release, ASX announcement, article content…"
+                  style={{ ...inp, fontFamily: 'monospace', fontSize: '11px', lineHeight: 1.5, resize: 'vertical' }}
+                />
+              </div>
+            ))}
+            <button onClick={() => setPastedTexts(prev => [...prev, ''])} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '4px 9px', borderRadius: '4px', border: `1px dashed ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer' }}>+ Paste Text</button>
+          </div>
 
           <button onClick={handleGenerateBrief} disabled={briefLoading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '11px', background: `linear-gradient(135deg, ${VS.accent}, ${VS.accentDim})`, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 3px 14px rgba(255,128,0,0.2)', opacity: briefLoading ? 0.5 : 1 }}>
             {briefLoading ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generating Brief…</> : <><ArrowRight size={14} /> Generate Brief</>}
