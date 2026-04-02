@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import BNA_STYLE_PROFILE from '@/lib/bna-style-profile';
 
-// Article generation uses ONLY the BNA style guide (final_bna.md) as system prompt.
+// Article generation uses the BNA style guide (final_bna.md) Sections 1-10 only.
+// Section 11 is application-level instructions for the developer, not for the model.
 // The model's job is to write the article — nothing else.
-const ARTICLE_SYSTEM_PROMPT = BNA_STYLE_PROFILE;
+const ARTICLE_SYSTEM_PROMPT = BNA_STYLE_PROFILE.split('## 11. AI Article Generation Rules')[0].trim();
 
 export async function POST(req: NextRequest) {
   try {
