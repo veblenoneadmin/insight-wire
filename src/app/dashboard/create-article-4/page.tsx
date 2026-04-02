@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, Copy, Download, Maximize2, Minimize2, Loader2, CheckCircle2, XCircle, ThumbsUp, ThumbsDown, Eye, ArrowRight } from 'lucide-react';
+import { Upload, Copy, Download, Maximize2, Minimize2, Loader2, CheckCircle2, ThumbsUp, ThumbsDown, Eye, ArrowRight } from 'lucide-react';
 
 // ── Palette ───────────────────────────────────────────────
 const VS = {
@@ -34,8 +34,6 @@ function mdToHtml(text: string): string {
 // ── Types ─────────────────────────────────────────────────
 type SourceItem = { id: string; label: string; type: string; text: string };
 type SoftSuggestion = { source_type: string; description: string; search_query: string; status: 'pending' | 'promoted' | 'discarded'; additionalPrompt: string };
-type ReferenceItem = { index: number; claim: string; source_title: string; source_type: string; origin: string; source_id: string; url: string | null };
-type ChecklistItem = { item: string; pass: boolean };
 
 type WorkflowStage = 'sources' | 'brief' | 'article';
 
@@ -64,9 +62,6 @@ export default function CreateArticle4Page() {
 
   // ── Article Output state (Right Panel) ──────────────────
   const [articleText, setArticleText]       = useState('');
-  const [references, setReferences]         = useState<ReferenceItem[] | null>(null);
-  const [checklist, setChecklist]           = useState<ChecklistItem[] | null>(null);
-  const [editorQA, setEditorQA]             = useState('');
   const [articleLoading, setArticleLoading] = useState(false);
   const [fullscreen, setFullscreen]         = useState(false);
 
@@ -187,9 +182,6 @@ export default function CreateArticle4Page() {
       if (!res.ok) { const d = await res.json().catch(() => null); setError(d?.error || `Article generation failed: HTTP ${res.status}`); return; }
       const data = await res.json();
       setArticleText(data.articleText || '');
-      setReferences(data.references || null);
-      setChecklist(data.checklist || null);
-      setEditorQA(data.editorQA || '');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Article generation failed');
     } finally {
@@ -467,49 +459,6 @@ export default function CreateArticle4Page() {
                 </div>
               </div>
 
-              {/* References (Workflow Section 6) */}
-              {references && references.length > 0 && (
-                <div style={{ background: '#fff', borderTop: '2px solid #e0e0e0', padding: '28px 20px' }}>
-                  <div style={{ maxWidth: '780px', margin: '0 auto' }}>
-                    <h2 style={{ fontFamily: 'sans-serif', fontSize: '16px', color: '#333', marginBottom: '14px', fontWeight: 700 }}>References</h2>
-                    {references.map((ref, i) => (
-                      <div key={i} style={{ padding: '10px 14px', border: '1px solid #e8e8e8', borderRadius: '6px', marginBottom: '8px', background: '#fafafa' }}>
-                        <div style={{ fontSize: '13px', color: '#333', fontStyle: 'italic', marginBottom: '4px' }}>"{ref.claim}"</div>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', fontSize: '10px' }}>
-                          <span style={{ padding: '2px 6px', background: '#f0f0f0', borderRadius: '3px', color: '#666' }}>{ref.source_title}</span>
-                          <span style={{ padding: '2px 6px', background: '#e8f4fd', borderRadius: '3px', color: '#0077b6' }}>{ref.source_type}</span>
-                          <span style={{ padding: '2px 6px', background: '#fff3e0', borderRadius: '3px', color: '#e65100' }}>{ref.origin}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Fact-check Checklist (Style Guide Section 11) */}
-              {checklist && checklist.length > 0 && (
-                <div style={{ background: '#fafafa', borderTop: '2px solid #e0e0e0', padding: '28px 20px' }}>
-                  <div style={{ maxWidth: '780px', margin: '0 auto' }}>
-                    <h2 style={{ fontFamily: 'sans-serif', fontSize: '16px', color: '#333', marginBottom: '14px', fontWeight: 700 }}>Fact-Check Checklist</h2>
-                    {checklist.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: item.pass ? 'rgba(78,201,176,0.06)' : 'rgba(244,71,71,0.06)', border: `1px solid ${item.pass ? 'rgba(78,201,176,0.2)' : 'rgba(244,71,71,0.2)'}`, borderRadius: '6px', marginBottom: '5px' }}>
-                        {item.pass ? <CheckCircle2 size={14} style={{ color: '#4ec9b0', flexShrink: 0 }} /> : <XCircle size={14} style={{ color: '#f44747', flexShrink: 0 }} />}
-                        <span style={{ fontSize: '12px', color: item.pass ? '#333' : '#f44747' }}>{item.item}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Editor Q&A (Style Guide Section 11) */}
-              {editorQA && (
-                <div style={{ background: '#fff', borderTop: '2px solid #e0e0e0', padding: '28px 20px' }}>
-                  <div style={{ maxWidth: '780px', margin: '0 auto' }}>
-                    <h2 style={{ fontFamily: 'sans-serif', fontSize: '16px', color: '#333', marginBottom: '14px', fontWeight: 700 }}>Editor Q&A</h2>
-                    <div style={{ fontSize: '14px', color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{editorQA}</div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>

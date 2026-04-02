@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import BNA_STYLE_PROFILE from '@/lib/bna-style-profile';
 
-// Article generation uses ONLY the BNA style guide (final_bna.md).
-// The workflow (insightwire_workflow.md) was already applied during brief generation.
-// By this point the brief is confirmed and hard sources are gathered.
+// Article generation uses ONLY the BNA style guide (final_bna.md) as system prompt.
+// The model's job is to write the article — nothing else.
 const ARTICLE_SYSTEM_PROMPT = BNA_STYLE_PROFILE;
 
 export async function POST(req: NextRequest) {
@@ -27,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const topicBlock = topic ? `ANGLE/FOCUS: ${topic}\n\n` : '';
 
-    // Hard sources as user message content
+    // Hard sources as user message content per workflow Section 7
     const sourceContent = sourceTexts.map(s => ({
       type: 'text' as const,
       text: `[SOURCE — ${s.label} (${s.type}), id: ${s.id}]\n${s.text}`,
@@ -47,55 +46,14 @@ export async function POST(req: NextRequest) {
         content: [
           { type: 'text', text: `${topicBlock}CONFIRMED BRIEF:\n${brief}${additionalBlock}\n\nHere are the hard sources:` },
           ...sourceContent,
-          { type: 'text', text: `Using the confirmed brief and the hard sources above, write a complete BNA-style article following the style guide exactly.
-
-Your output must contain exactly these blocks in order:
-
-1. The article as markdown — with a headline (# heading), then a "### Headline Variants" section with 3-5 alternatives labelled by pattern type, then the full article body following Section 5 structure.
-
-2. A references JSON block mapping every key claim to its hard source:
-\`\`\`json:references
-[{ "index": 1, "claim": "...", "source_title": "...", "source_type": "...", "origin": "...", "source_id": "...", "url": "..." }]
-\`\`\`
-
-3. A fact-check checklist JSON block:
-\`\`\`json:checklist
-[{ "item": "Dollar figure matches source", "pass": true }, ...]
-\`\`\`
-
-4. An "## Editor Q&A" section with 3 suggested follow-up questions as plain text.
-
-Do not omit any block.` },
+          { type: 'text', text: 'Using the confirmed brief and the hard sources above, write a complete BNA-style article. Follow the style guide exactly. Output only the article.' },
         ],
       }],
     });
 
-    const fullOutput = articleMessage.content[0]?.type === 'text' ? articleMessage.content[0].text : '';
+    const articleText = articleMessage.content[0]?.type === 'text' ? articleMessage.content[0].text : '';
 
-    // Parse the output blocks
-    const articleBody = fullOutput.split(/```json:references/)[0]?.trim() ?? fullOutput;
-
-    const refsMatch = fullOutput.match(/```json:references\s*\n([\s\S]*?)```/);
-    let references = null;
-    if (refsMatch) {
-      try { references = JSON.parse(refsMatch[1].trim()); } catch { /* ignore */ }
-    }
-
-    const checkMatch = fullOutput.match(/```json:checklist\s*\n([\s\S]*?)```/);
-    let checklist = null;
-    if (checkMatch) {
-      try { checklist = JSON.parse(checkMatch[1].trim()); } catch { /* ignore */ }
-    }
-
-    const lastBlockEnd = fullOutput.lastIndexOf('```');
-    const editorQA = lastBlockEnd > -1 ? fullOutput.slice(lastBlockEnd + 3).trim() : '';
-
-    return NextResponse.json({
-      articleText: articleBody,
-      references,
-      checklist,
-      editorQA,
-    });
+    return NextResponse.json({ articleText });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     console.error('[generate-articles-4] Error:', msg);
