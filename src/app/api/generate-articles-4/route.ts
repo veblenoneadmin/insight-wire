@@ -4,8 +4,13 @@ import BNA_STYLE_PROFILE from '@/lib/bna-style-profile';
 
 // Article generation uses the BNA style guide (final_bna.md) Sections 1-10 only.
 // Section 11 is application-level instructions for the developer, not for the model.
-// The model's job is to write the article — nothing else.
-const ARTICLE_SYSTEM_PROMPT = BNA_STYLE_PROFILE.split('## 11. AI Article Generation Rules')[0].trim();
+const ARTICLE_SYSTEM_PROMPT = BNA_STYLE_PROFILE.split('## 11. AI Article Generation Rules')[0].trim()
+
+  + `\n\nCRITICAL OUTPUT RULES:
+- Output ONLY the article text. No meta-commentary, no section labels, no structural headers like "## Headline" or "### Lede" or "## Article Body".
+- The article must read exactly as it would appear on businessnewsaustralia.com — a single headline followed by flowing prose paragraphs.
+- Start with one headline line, then the article body. No markdown headings in the body. No subheadings in standard news articles.
+- Do not output any headers, labels, checklists, Q&A sections, or appendices — just the article as a reader would see it.`;
 
 export async function POST(req: NextRequest) {
   try {
