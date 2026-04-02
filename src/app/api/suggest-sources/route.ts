@@ -12,15 +12,14 @@ You are an editorial assistant for Business News Australia. Based on the hard so
 Each recommendation must include:
 - source_type: the type of source (e.g. "ASX announcement", "government report", "competitor article", "industry data", "prior BNA coverage")
 - description: a one-sentence rationale for why it is relevant
-- url: a DIRECT URL to the actual webpage of the suggested source — not a Google search link. For example: "https://www.businessnewsaustralia.com/articles/some-article.html" or "https://www.asx.com.au/..." — the URL the writer can click to read the source immediately. Use real website URLs only.
-- search_query: a backup search query if the writer needs to find it manually
+- search_query: a precise Google search query that will find this source as the top result. Be specific with company names, dates, and site: operators where appropriate.
 
 Return your recommendations as a JSON array inside a fenced code block tagged json:suggestions. Example:
 
 \`\`\`json:suggestions
 [
-  { "source_type": "ASX announcement", "description": "The company's most recent half-year results would provide revenue and EBITDA figures for context.", "url": "https://www.asx.com.au/asx/statistics/announcements.do?by=asxCode&asxCode=XXX", "search_query": "CompanyName ASX half year results 2025" },
-  { "source_type": "prior BNA coverage", "description": "BNA covered this company's previous capital raise 6 months ago.", "url": "https://www.businessnewsaustralia.com/articles/companyname-raises-capital.html", "search_query": "site:businessnewsaustralia.com CompanyName raises" }
+  { "source_type": "ASX announcement", "description": "The company's most recent half-year results would provide revenue and EBITDA figures for context.", "search_query": "CompanyName ASX half year results 2025" },
+  { "source_type": "prior BNA coverage", "description": "BNA covered this company's previous capital raise 6 months ago.", "search_query": "site:businessnewsaustralia.com CompanyName raises" }
 ]
 \`\`\`
 
