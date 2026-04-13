@@ -73,6 +73,7 @@ export default function CreateArticle4Page() {
   // ── Staged Quotes (shown in output panel for editing) ───
   type StagedQuote = { source: string; quote: string; placement: string };
   const [stagedQuotes, setStagedQuotes]     = useState<StagedQuote[]>([]);
+  const [stagedContent, setStagedContent]   = useState<{ source: string; content: string } | null>(null);
 
   // ── Advanced Options state ──────────────────────────────
   const [optOpen, setOptOpen]               = useState(false);
@@ -565,7 +566,7 @@ export default function CreateArticle4Page() {
             </div>
           )}
 
-          {!hasArticle && !articleLoading && stagedQuotes.length === 0 && (
+          {!hasArticle && !articleLoading && stagedQuotes.length === 0 && !stagedContent && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '60px 40px', textAlign: 'center', color: VS.text2, gap: '14px' }}>
               <svg width="44" height="44" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" opacity={0.25}>
                 <rect x="8" y="6" width="32" height="36" rx="3"/>
@@ -582,10 +583,52 @@ export default function CreateArticle4Page() {
             </div>
           )}
 
-          {!hasArticle && !articleLoading && stagedQuotes.length > 0 && (
+          {!hasArticle && !articleLoading && (stagedQuotes.length > 0 || stagedContent) && (
             <div style={{ padding: '28px', maxWidth: '800px', margin: '0 auto' }}>
+
+              {/* Announcement Content */}
+              {stagedContent && (
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div>
+                      <h2 style={{ fontFamily: 'sans-serif', fontSize: '18px', color: '#333', marginBottom: '2px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '10px', padding: '2px 8px', borderRadius: '3px', background: 'rgba(206,147,216,0.2)', color: '#a055b8' }}>ANN</span>
+                        {stagedContent.source}
+                      </h2>
+                      <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>Full announcement content — highlighted text indicates saved quotes.</p>
+                    </div>
+                    <button
+                      onClick={() => setStagedContent(null)}
+                      style={{ fontFamily: 'monospace', fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer' }}
+                    >Hide content</button>
+                  </div>
+                  <div style={{ padding: '16px 20px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', maxHeight: '400px', overflowY: 'auto', fontSize: '13px', color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {(() => {
+                      // Highlight quotes from this source in the content
+                      const sourceQuotes = stagedQuotes.filter(sq => sq.source === stagedContent.source).map(sq => sq.quote);
+                      if (sourceQuotes.length === 0) return stagedContent.content;
+                      // Build regex matching any of the quotes
+                      const escaped = sourceQuotes.map(q => q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                      const regex = new RegExp(`(${escaped.join('|')})`, 'g');
+                      const parts = stagedContent.content.split(regex);
+                      return parts.map((part, i) => {
+                        if (sourceQuotes.includes(part)) {
+                          return <mark key={i} style={{ background: 'rgba(206,147,216,0.3)', color: '#333', padding: '1px 2px', borderRadius: '2px' }}>{part}</mark>;
+                        }
+                        return <span key={i}>{part}</span>;
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Staged Quotes */}
+              {stagedQuotes.length > 0 && (
+              <>
               <h2 style={{ fontFamily: 'sans-serif', fontSize: '18px', color: '#333', marginBottom: '4px', fontWeight: 700 }}>Staged Quotes</h2>
-              <p style={{ fontSize: '13px', color: '#888', marginBottom: '20px' }}>Quotes from your announcements that will be included in the article. Edit the quote text and placement below. Confirm the brief in the middle panel to generate the article.</p>
+              <p style={{ fontSize: '13px', color: '#888', marginBottom: '20px' }}>Edit the quote text and placement below. Confirm the brief in the middle panel to generate the article.</p>
+              </>
+              )}
 
               {stagedQuotes.map((sq, i) => (
                 <div key={i} style={{ padding: '14px 16px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', marginBottom: '10px' }}>
@@ -895,6 +938,7 @@ export default function CreateArticle4Page() {
                 <button
                   onClick={() => {
                     const srcName = announcementNames[viewingAnn];
+                    const srcContent = announcementContents[viewingAnn];
                     const quotes = annQuotes[viewingAnn] || [];
                     setStagedQuotes(prev => {
                       // Remove existing quotes from this source, then add the new ones
@@ -902,6 +946,7 @@ export default function CreateArticle4Page() {
                       const placements = ['First quote (CEO/founder)', 'Secondary quote', 'Closing quote', 'Supporting quote', 'Additional quote'];
                       return [...kept, ...quotes.map((q, i) => ({ source: srcName, quote: q, placement: placements[i] || 'Additional quote' }))];
                     });
+                    setStagedContent({ source: srcName, content: srcContent });
                     setViewingAnn(null);
                     setSelectedText('');
                   }}
