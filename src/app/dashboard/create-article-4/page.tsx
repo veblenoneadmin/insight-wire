@@ -68,7 +68,7 @@ export default function CreateArticle4Page() {
   const [articleLoading, setArticleLoading] = useState(false);
   const [fullscreen, setFullscreen]         = useState(false);
   const [editMode, setEditMode]             = useState(false);
-  const [expandedAnn, setExpandedAnn]       = useState<number | null>(null);
+  const [viewingAnn, setViewingAnn]         = useState<number | null>(null);
 
   // ── Add Source Modal state ───────────────────────────────
   const [addModalOpen, setAddModalOpen]         = useState(false);
@@ -203,7 +203,7 @@ export default function CreateArticle4Page() {
     setError('');
     const urls = sourceUrls.filter(s => s.trim());
     const texts = pastedTexts.filter(s => s.trim());
-    if (urls.length === 0 && fileContents.length === 0 && texts.length === 0 && announcementContents.length === 0) {
+    if (urls.length === 0 && fileContents.length === 0 && texts.length === 0) {
       setError('Please provide at least one hard source.'); return;
     }
     setBriefLoading(true);
@@ -216,7 +216,7 @@ export default function CreateArticle4Page() {
       const res = await fetch('/api/generate-brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sources: urls, fileContents: [...fileContents, ...texts, ...announcementContents], topic }),
+        body: JSON.stringify({ sources: urls, fileContents: [...fileContents, ...texts], topic }),
       });
       if (!res.ok) { const d = await res.json().catch(() => null); setError(d?.error || `Brief generation failed: HTTP ${res.status}`); return; }
       const data = await res.json();
@@ -367,26 +367,27 @@ export default function CreateArticle4Page() {
                 <button onClick={() => setPastedTexts(prev => prev.filter((_, j) => j !== i))} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
               </div>
             ))}
-            {announcementNames.map((name, i) => (
-              <div key={`ann-${i}`} style={{ background: VS.bg2, border: `1px solid ${expandedAnn === i ? '#ce93d8' : VS.border}`, borderRadius: '4px', fontSize: '11px', color: VS.text1, fontFamily: 'monospace', transition: 'border-color 0.15s' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: '8px', padding: '1px 4px', borderRadius: '2px', background: 'rgba(206,147,216,0.2)', color: '#ce93d8', flexShrink: 0 }}>ANN</span>
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                  <button onClick={() => setExpandedAnn(expandedAnn === i ? null : i)} style={{ fontFamily: 'monospace', fontSize: '8px', padding: '2px 6px', borderRadius: '3px', border: `1px solid ${expandedAnn === i ? '#ce93d8' : VS.border}`, background: expandedAnn === i ? 'rgba(206,147,216,0.1)' : 'transparent', color: expandedAnn === i ? '#ce93d8' : VS.text2, cursor: 'pointer', flexShrink: 0 }}>{expandedAnn === i ? 'Hide' : 'View Contents'}</button>
-                  <button onClick={() => removeAnnouncement(i)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
-                </div>
-                {expandedAnn === i && (
-                  <div style={{ padding: '8px', borderTop: `1px solid ${VS.border}`, maxHeight: '200px', overflowY: 'auto', fontSize: '11px', color: VS.text2, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {announcementContents[i]}
-                  </div>
-                )}
-              </div>
-            ))}
           </div>
 
           <button onClick={openAddModal} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', padding: '9px', border: `1px dashed ${VS.border}`, borderRadius: '8px', background: 'transparent', color: VS.text2, fontFamily: 'monospace', fontSize: '11px', cursor: 'pointer', marginBottom: '14px' }}>
             <Plus size={12} /> Add Source
           </button>
+
+          {announcementNames.length > 0 && (
+            <div style={{ marginBottom: '14px' }}>
+              <label style={lbl}>Announcements</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {announcementNames.map((name, i) => (
+                  <div key={`ann-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '4px', fontSize: '11px', color: VS.text1, fontFamily: 'monospace' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '8px', padding: '1px 4px', borderRadius: '2px', background: 'rgba(206,147,216,0.2)', color: '#ce93d8', flexShrink: 0 }}>ANN</span>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                    <button onClick={() => setViewingAnn(i)} style={{ fontFamily: 'monospace', fontSize: '8px', padding: '2px 6px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', flexShrink: 0 }}>View</button>
+                    <button onClick={() => removeAnnouncement(i)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <button onClick={handleGenerateBrief} disabled={briefLoading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '11px', background: `linear-gradient(135deg, ${VS.accent}, ${VS.accentDim})`, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 3px 14px rgba(255,128,0,0.2)', opacity: briefLoading ? 0.5 : 1 }}>
             {briefLoading ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generating Brief…</> : <><ArrowRight size={14} /> Generate Brief</>}
@@ -731,6 +732,24 @@ export default function CreateArticle4Page() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── View Announcement Content Modal ────────────────── */}
+      {viewingAnn !== null && announcementContents[viewingAnn] && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setViewingAnn(null)}>
+          <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '12px', width: '640px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: `1px solid ${VS.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontFamily: 'monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '3px', background: 'rgba(206,147,216,0.2)', color: '#ce93d8' }}>ANN</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '12px', color: VS.text0, fontWeight: 600 }}>{announcementNames[viewingAnn]}</span>
+              </div>
+              <button onClick={() => setViewingAnn(null)} style={{ background: 'transparent', border: 'none', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '18px', fontSize: '12px', color: VS.text1, lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace' }}>
+              {announcementContents[viewingAnn]}
             </div>
           </div>
         </div>
