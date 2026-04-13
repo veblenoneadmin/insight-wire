@@ -251,9 +251,9 @@ export default function CreateArticle4Page() {
         .filter(s => s.status === 'saved' && s.additionalPrompt.trim())
         .map(s => `[${s.source_type}]: ${s.additionalPrompt.trim()}`);
 
-      // Use staged quotes (confirmed from announcement view) with their placements
+      // Use staged quotes (confirmed from announcement view)
       const announcementQuotes = stagedQuotes.map(sq => ({
-        source: sq.source, quote: sq.quote, placement: sq.placement,
+        source: sq.source, quote: sq.quote,
       }));
 
       const res = await fetch('/api/generate-articles-4', {
@@ -649,21 +649,8 @@ export default function CreateArticle4Page() {
                     value={sq.quote}
                     onChange={e => setStagedQuotes(prev => prev.map((q, j) => j === i ? { ...q, quote: e.target.value } : q))}
                     rows={3}
-                    style={{ width: '100%', padding: '8px 11px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px', color: '#333', lineHeight: 1.5, fontFamily: 'sans-serif', fontStyle: 'italic', resize: 'vertical', outline: 'none', marginBottom: '10px', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 11px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px', color: '#333', lineHeight: 1.5, fontFamily: 'sans-serif', fontStyle: 'italic', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
                   />
-
-                  <label style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: '#999', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Placement</label>
-                  <select
-                    value={sq.placement}
-                    onChange={e => setStagedQuotes(prev => prev.map((q, j) => j === i ? { ...q, placement: e.target.value } : q))}
-                    style={{ width: '100%', padding: '7px 10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '12px', color: '#333', fontFamily: 'monospace', background: '#fff', outline: 'none', cursor: 'pointer' }}
-                  >
-                    <option>First quote (CEO/founder)</option>
-                    <option>Secondary quote</option>
-                    <option>Supporting quote</option>
-                    <option>Closing quote</option>
-                    <option>Additional quote</option>
-                  </select>
                 </div>
               ))}
 
