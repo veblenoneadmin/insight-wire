@@ -202,10 +202,14 @@ export default function CreateArticle4Page() {
     setArticleText('');
     setStage('brief');
     try {
+      // Include any journalist-selected quotes from announcements so the
+      // brief can surface "who is quoted" (per workflow Section 4 rule 2).
+      const briefQuotes = stagedQuotes.map(sq => ({ source: sq.source, quote: sq.quote }));
+
       const res = await fetch('/api/generate-brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sources: urls, fileContents: texts, topic }),
+        body: JSON.stringify({ sources: urls, fileContents: texts, topic, journalistQuotes: briefQuotes }),
       });
       if (!res.ok) { const d = await res.json().catch(() => null); setError(d?.error || `Brief generation failed: HTTP ${res.status}`); return; }
       const data = await res.json();

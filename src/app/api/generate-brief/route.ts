@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     const sources: string[] = body.sources || [];
     const fileContents: string[] = body.fileContents || [];
     const topic: string = body.topic || '';
+    const journalistQuotes: { source: string; quote: string }[] = body.journalistQuotes || [];
 
     // Scrape URLs
     const scrapedSources: { id: string; label: string; text: string; type: string }[] = [];
@@ -62,6 +63,13 @@ export async function POST(req: NextRequest) {
     const topicBlock = topic ? `ANGLE/FOCUS: ${topic}\n\n` : '';
     const sourceContent = sourceBlocks.map(b => ({ type: 'text' as const, text: b }));
 
+    // Journalist-selected quotes from announcements — these are the quotes that
+    // will be used in the article. The brief must surface "who is quoted" per
+    // workflow Section 4 rule 2 based on these.
+    const quotesBlock = journalistQuotes.length > 0
+      ? `\n\nJOURNALIST-SELECTED QUOTES (these are the quotes the journalist has flagged to appear in the article — use them to identify "who is quoted" and their roles in the brief):\n${journalistQuotes.map((q, i) => `${i + 1}. From "${q.source}":\n   "${q.quote}"`).join('\n\n')}`
+      : '';
+
     const briefMessage = await client.messages.create({
       model: 'claude-opus-4-6',
       max_tokens: 1000,
@@ -71,7 +79,7 @@ export async function POST(req: NextRequest) {
         content: [
           { type: 'text', text: `${topicBlock}Here are the hard sources for this article:` },
           ...sourceContent,
-          { type: 'text', text: 'Generate the brief based on these sources only.' },
+          { type: 'text', text: `Generate the brief based on these sources only.${quotesBlock}` },
         ],
       }],
     });
