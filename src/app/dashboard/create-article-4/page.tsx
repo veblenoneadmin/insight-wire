@@ -68,6 +68,7 @@ export default function CreateArticle4Page() {
   const [articleLoading, setArticleLoading] = useState(false);
   const [fullscreen, setFullscreen]         = useState(false);
   const [editMode, setEditMode]             = useState(false);
+  const [expandedAnn, setExpandedAnn]       = useState<number | null>(null);
 
   // ── Add Source Modal state ───────────────────────────────
   const [addModalOpen, setAddModalOpen]         = useState(false);
@@ -367,10 +368,18 @@ export default function CreateArticle4Page() {
               </div>
             ))}
             {announcementNames.map((name, i) => (
-              <div key={`ann-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '4px', fontSize: '11px', color: VS.text1, fontFamily: 'monospace' }}>
-                <span style={{ fontFamily: 'monospace', fontSize: '8px', padding: '1px 4px', borderRadius: '2px', background: 'rgba(206,147,216,0.2)', color: '#ce93d8', flexShrink: 0 }}>ANN</span>
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                <button onClick={() => removeAnnouncement(i)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
+              <div key={`ann-${i}`} style={{ background: VS.bg2, border: `1px solid ${expandedAnn === i ? '#ce93d8' : VS.border}`, borderRadius: '4px', fontSize: '11px', color: VS.text1, fontFamily: 'monospace', transition: 'border-color 0.15s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', cursor: 'pointer' }} onClick={() => setExpandedAnn(expandedAnn === i ? null : i)}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '8px', padding: '1px 4px', borderRadius: '2px', background: 'rgba(206,147,216,0.2)', color: '#ce93d8', flexShrink: 0 }}>ANN</span>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                  <span style={{ fontSize: '10px', color: VS.text2, flexShrink: 0 }}>{expandedAnn === i ? '▾' : '▸'}</span>
+                  <button onClick={e => { e.stopPropagation(); removeAnnouncement(i); }} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
+                </div>
+                {expandedAnn === i && (
+                  <div style={{ padding: '8px', borderTop: `1px solid ${VS.border}`, maxHeight: '200px', overflowY: 'auto', fontSize: '11px', color: VS.text2, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {announcementContents[i]}
+                  </div>
+                )}
               </div>
             ))}
           </div>
