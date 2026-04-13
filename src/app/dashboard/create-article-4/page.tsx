@@ -45,8 +45,6 @@ const pillBtn = (active: boolean): React.CSSProperties => ({ fontFamily: 'monosp
 export default function CreateArticle4Page() {
   // ── Source Manager state (Left Panel) ───────────────────
   const [sourceUrls, setSourceUrls] = useState<string[]>(['']);
-  const [fileContents, setFileContents] = useState<string[]>([]);
-  const [fileNames, setFileNames]       = useState<string[]>([]);
   const [announcementContents, setAnnouncementContents] = useState<string[]>([]);
   const [announcementNames, setAnnouncementNames]       = useState<string[]>([]);
   const [pastedTexts, setPastedTexts]   = useState<string[]>([]);
@@ -72,7 +70,7 @@ export default function CreateArticle4Page() {
 
   // ── Add Source Modal state ───────────────────────────────
   const [addModalOpen, setAddModalOpen]         = useState(false);
-  const [addModalTab, setAddModalTab]           = useState<'url' | 'file' | 'text' | 'announcement' | 'saved'>('url');
+  const [addModalTab, setAddModalTab]           = useState<'url' | 'text' | 'announcement' | 'saved'>('url');
   const [modalUrl, setModalUrl]                 = useState('');
   const [modalText, setModalText]               = useState('');
   const [savedSources, setSavedSources]         = useState<{ id: number; url: string; title: string; source_type: string; rationale: string }[]>([]);
@@ -108,12 +106,6 @@ export default function CreateArticle4Page() {
     if (!modalUrl.trim()) return;
     setSourceUrls(prev => [...prev.filter(u => u.trim()), modalUrl.trim(), '']);
     setModalUrl('');
-    setAddModalOpen(false);
-  };
-
-  const addModalFileSource = async (files: FileList | null) => {
-    if (!files) return;
-    await handleFileUpload(files);
     setAddModalOpen(false);
   };
 
@@ -179,31 +171,13 @@ export default function CreateArticle4Page() {
     throw new Error('Unsupported file type. Use .txt, .pdf, or .docx');
   };
 
-  const handleFileUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    for (const file of Array.from(files)) {
-      try {
-        const text = await extractFileText(file);
-        if (!text.trim()) { setError(`Could not extract text from ${file.name}`); continue; }
-        setFileContents(prev => [...prev, text.trim()]);
-        setFileNames(prev => [...prev, file.name]);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : `Failed to process ${file.name}`);
-      }
-    }
-  };
-
-  const removeFile = (idx: number) => {
-    setFileContents(prev => prev.filter((_, i) => i !== idx));
-    setFileNames(prev => prev.filter((_, i) => i !== idx));
-  };
 
   // ── Step 2: Generate brief (Workflow Section 4) ─────────
   const handleGenerateBrief = async () => {
     setError('');
     const urls = sourceUrls.filter(s => s.trim());
     const texts = pastedTexts.filter(s => s.trim());
-    if (urls.length === 0 && fileContents.length === 0 && texts.length === 0) {
+    if (urls.length === 0 && texts.length === 0) {
       setError('Please provide at least one hard source.'); return;
     }
     setBriefLoading(true);
@@ -216,7 +190,7 @@ export default function CreateArticle4Page() {
       const res = await fetch('/api/generate-brief', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sources: urls, fileContents: [...fileContents, ...texts], topic }),
+        body: JSON.stringify({ sources: urls, fileContents: texts, topic }),
       });
       if (!res.ok) { const d = await res.json().catch(() => null); setError(d?.error || `Brief generation failed: HTTP ${res.status}`); return; }
       const data = await res.json();
@@ -230,7 +204,7 @@ export default function CreateArticle4Page() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           brief: data.brief,
-          sourceLabels: [...urls, ...fileNames],
+          sourceLabels: urls,
           topic,
         }),
       });
@@ -351,13 +325,6 @@ export default function CreateArticle4Page() {
                 <span style={{ fontFamily: 'monospace', fontSize: '8px', padding: '1px 4px', borderRadius: '2px', background: 'rgba(86,156,214,0.15)', color: VS.blue, flexShrink: 0 }}>URL</span>
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{src}</span>
                 <button onClick={() => setSourceUrls(prev => prev.filter((_, j) => j !== i))} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
-              </div>
-            ))}
-            {fileNames.map((name, i) => (
-              <div key={`file-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 8px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '4px', fontSize: '11px', color: VS.text1, fontFamily: 'monospace' }}>
-                <span style={{ fontFamily: 'monospace', fontSize: '8px', padding: '1px 4px', borderRadius: '2px', background: 'rgba(78,201,176,0.15)', color: VS.success, flexShrink: 0 }}>FILE</span>
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-                <button onClick={() => removeFile(i)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
               </div>
             ))}
             {pastedTexts.map((txt, i) => (
@@ -619,7 +586,7 @@ export default function CreateArticle4Page() {
 
             {/* Tabs */}
             <div style={{ display: 'flex', borderBottom: `1px solid ${VS.border}` }}>
-              {([['url', 'URL'], ['file', 'File'], ['text', 'Text'], ['announcement', 'Announcement'], ['saved', 'Saved']] as const).map(([key, label]) => (
+              {([['url', 'URL'], ['text', 'Text'], ['announcement', 'Announcement'], ['saved', 'Saved']] as const).map(([key, label]) => (
                 <button key={key} onClick={() => setAddModalTab(key)}
                   style={{ flex: 1, padding: '10px 8px', background: addModalTab === key ? VS.bg2 : 'transparent', border: 'none', borderBottom: addModalTab === key ? `2px solid ${VS.accent}` : '2px solid transparent', color: addModalTab === key ? VS.accent : VS.text2, fontFamily: 'monospace', fontSize: '10px', cursor: 'pointer', fontWeight: addModalTab === key ? 600 : 400 }}>
                   {label}
@@ -642,18 +609,6 @@ export default function CreateArticle4Page() {
                       Add URL
                     </button>
                   </div>
-                </div>
-              )}
-
-              {/* File Upload Tab */}
-              {addModalTab === 'file' && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '20px 0' }}>
-                  <Upload size={28} style={{ color: VS.text2 }} />
-                  <div style={{ fontSize: '13px', color: VS.text1, textAlign: 'center' }}>Upload PDF, DOCX, or TXT files</div>
-                  <label style={{ fontFamily: 'monospace', fontSize: '11px', padding: '8px 18px', borderRadius: '6px', background: VS.accent, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
-                    Choose Files
-                    <input type="file" accept=".pdf,.doc,.docx,.txt" multiple style={{ display: 'none' }} onChange={e => addModalFileSource(e.target.files)} />
-                  </label>
                 </div>
               )}
 
