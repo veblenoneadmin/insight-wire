@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     const mood: string = body.mood || '';
     const wordCount: number | undefined = body.wordCount;
     const region: string = body.region || '';
+    const announcementQuotes: { source: string; quote: string }[] = body.announcementQuotes || [];
 
     const topicBlock = topic ? `ANGLE/FOCUS: ${topic}\n\n` : '';
 
@@ -56,6 +57,11 @@ export async function POST(req: NextRequest) {
       ? `\n\nADDITIONAL INSTRUCTIONS FROM WRITER:\n${additionalPrompts.filter(p => p.trim()).join('\n')}`
       : '';
 
+    // Quotes selected by writer from announcements — must be used verbatim in the article
+    const quotesBlock = announcementQuotes.length > 0
+      ? `\n\nREQUIRED QUOTES (selected by writer from announcements — include these verbatim as direct quotes in the article, with appropriate attribution):\n${announcementQuotes.map((q, i) => `${i + 1}. From "${q.source}": "${q.quote}"`).join('\n')}`
+      : '';
+
     const articleMessage = await client.messages.create({
       model: 'claude-opus-4-6',
       max_tokens: 5000,
@@ -63,7 +69,7 @@ export async function POST(req: NextRequest) {
       messages: [{
         role: 'user',
         content: [
-          { type: 'text', text: `${topicBlock}CONFIRMED BRIEF:\n${brief}${optionsBlock}${additionalBlock}\n\nHere are the hard sources:` },
+          { type: 'text', text: `${topicBlock}CONFIRMED BRIEF:\n${brief}${optionsBlock}${additionalBlock}${quotesBlock}\n\nHere are the hard sources:` },
           ...sourceContent,
           { type: 'text', text: 'Using the confirmed brief and the hard sources above, write a complete BNA-style article. Follow the style guide exactly. Output only the article.' },
         ],

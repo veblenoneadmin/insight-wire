@@ -67,6 +67,8 @@ export default function CreateArticle4Page() {
   const [fullscreen, setFullscreen]         = useState(false);
   const [editMode, setEditMode]             = useState(false);
   const [viewingAnn, setViewingAnn]         = useState<number | null>(null);
+  const [annQuotes, setAnnQuotes]           = useState<Record<number, string[]>>({});
+  const [selectedText, setSelectedText]     = useState('');
 
   // ── Advanced Options state ──────────────────────────────
   const [optOpen, setOptOpen]               = useState(false);
@@ -244,10 +246,15 @@ export default function CreateArticle4Page() {
         .filter(s => s.status === 'saved' && s.additionalPrompt.trim())
         .map(s => `[${s.source_type}]: ${s.additionalPrompt.trim()}`);
 
+      // Collect saved quotes from announcements
+      const announcementQuotes = Object.entries(annQuotes).flatMap(([idx, quotes]) =>
+        quotes.map(q => ({ source: announcementNames[Number(idx)] || `Announcement ${Number(idx) + 1}`, quote: q }))
+      );
+
       const res = await fetch('/api/generate-articles-4', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, sourceTexts, topic, additionalPrompts, tone, mood, wordCount: wordCount ? parseInt(wordCount) : undefined, region }),
+        body: JSON.stringify({ brief, sourceTexts, topic, additionalPrompts, tone, mood, wordCount: wordCount ? parseInt(wordCount) : undefined, region, announcementQuotes }),
       });
       if (!res.ok) { const d = await res.json().catch(() => null); setError(d?.error || `Article generation failed: HTTP ${res.status}`); return; }
       const data = await res.json();
@@ -764,18 +771,76 @@ export default function CreateArticle4Page() {
 
       {/* ── View Announcement Content Modal ────────────────── */}
       {viewingAnn !== null && announcementContents[viewingAnn] && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setViewingAnn(null)}>
-          <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '12px', width: '640px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setViewingAnn(null); setSelectedText(''); }}>
+          <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '12px', width: '720px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: `1px solid ${VS.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontFamily: 'monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '3px', background: 'rgba(206,147,216,0.2)', color: '#ce93d8' }}>ANN</span>
                 <span style={{ fontFamily: 'monospace', fontSize: '12px', color: VS.text0, fontWeight: 600 }}>{announcementNames[viewingAnn]}</span>
               </div>
-              <button onClick={() => setViewingAnn(null)} style={{ background: 'transparent', border: 'none', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
+              <button onClick={() => { setViewingAnn(null); setSelectedText(''); }} style={{ background: 'transparent', border: 'none', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '18px', fontSize: '12px', color: VS.text1, lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace' }}>
+
+            {/* Instructions */}
+            <div style={{ padding: '8px 18px', background: VS.bg2, borderBottom: `1px solid ${VS.border}`, fontSize: '10px', color: VS.text2, fontFamily: 'monospace' }}>
+              Select any text below and click &quot;Save as Quote&quot; to add it to the article quotes.
+            </div>
+
+            {/* Content (selectable) */}
+            <div
+              onMouseUp={() => {
+                const sel = window.getSelection();
+                const text = sel ? sel.toString().trim() : '';
+                setSelectedText(text);
+              }}
+              style={{ flex: 1, overflowY: 'auto', padding: '18px', fontSize: '12px', color: VS.text1, lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace', userSelect: 'text', cursor: 'text' }}
+            >
               {announcementContents[viewingAnn]}
             </div>
+
+            {/* Selection toolbar */}
+            {selectedText && (
+              <div style={{ padding: '10px 18px', background: 'rgba(206,147,216,0.08)', borderTop: `1px solid ${VS.border}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ flex: 1, fontSize: '11px', color: VS.text1, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>&ldquo;{selectedText.slice(0, 80)}{selectedText.length > 80 ? '…' : ''}&rdquo;</div>
+                <button
+                  onClick={() => {
+                    setAnnQuotes(prev => ({
+                      ...prev,
+                      [viewingAnn]: [...(prev[viewingAnn] || []), selectedText],
+                    }));
+                    setSelectedText('');
+                    window.getSelection()?.removeAllRanges();
+                  }}
+                  style={{ fontFamily: 'monospace', fontSize: '10px', padding: '5px 12px', borderRadius: '4px', border: 'none', background: '#ce93d8', color: '#fff', cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}
+                >
+                  + Save as Quote
+                </button>
+              </div>
+            )}
+
+            {/* Saved quotes for this announcement */}
+            {(annQuotes[viewingAnn] || []).length > 0 && (
+              <div style={{ padding: '12px 18px', borderTop: `1px solid ${VS.border}`, maxHeight: '180px', overflowY: 'auto' }}>
+                <div style={{ fontFamily: 'monospace', fontSize: '9px', color: VS.text2, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                  Saved Quotes ({(annQuotes[viewingAnn] || []).length})
+                </div>
+                {(annQuotes[viewingAnn] || []).map((q, qi) => (
+                  <div key={qi} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '7px 10px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '4px', marginBottom: '5px' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: '9px', color: '#ce93d8', flexShrink: 0, marginTop: '1px' }}>{qi + 1}.</span>
+                    <span style={{ flex: 1, fontSize: '11px', color: VS.text1, fontStyle: 'italic', lineHeight: 1.5 }}>&ldquo;{q}&rdquo;</span>
+                    <button
+                      onClick={() => setAnnQuotes(prev => ({
+                        ...prev,
+                        [viewingAnn]: (prev[viewingAnn] || []).filter((_, i) => i !== qi),
+                      }))}
+                      style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
