@@ -74,6 +74,7 @@ export default function CreateArticle4Page() {
   type StagedQuote = { source: string; quote: string; placement: string };
   const [stagedQuotes, setStagedQuotes]     = useState<StagedQuote[]>([]);
   const [stagedContent, setStagedContent]   = useState<{ source: string; content: string } | null>(null);
+  const [contentEditMode, setContentEditMode] = useState(false);
 
   // ── Advanced Options state ──────────────────────────────
   const [optOpen, setOptOpen]               = useState(false);
@@ -595,30 +596,57 @@ export default function CreateArticle4Page() {
                         <span style={{ fontFamily: 'monospace', fontSize: '10px', padding: '2px 8px', borderRadius: '3px', background: 'rgba(206,147,216,0.2)', color: '#a055b8' }}>ANN</span>
                         {stagedContent.source}
                       </h2>
-                      <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>Full announcement content (editable) — used as source material for the article. Quotes above are flagged for required placement.</p>
+                      <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>{contentEditMode ? 'Edit mode — make any changes needed.' : 'Saved quotes are highlighted. Click Edit to modify the content.'}</p>
                     </div>
-                    <button
-                      onClick={() => setStagedContent(null)}
-                      style={{ fontFamily: 'monospace', fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer' }}
-                    >Hide</button>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        onClick={() => setContentEditMode(v => !v)}
+                        style={{ fontFamily: 'monospace', fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: contentEditMode ? '1px solid #FF8000' : '1px solid #ddd', background: contentEditMode ? 'rgba(255,128,0,0.08)' : '#fff', color: contentEditMode ? '#FF8000' : '#666', cursor: 'pointer' }}
+                      >{contentEditMode ? 'View' : 'Edit'}</button>
+                      <button
+                        onClick={() => setStagedContent(null)}
+                        style={{ fontFamily: 'monospace', fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer' }}
+                      >Hide</button>
+                    </div>
                   </div>
-                  <textarea
-                    value={stagedContent.content}
-                    onChange={e => {
-                      const newContent = e.target.value;
-                      const srcName = stagedContent.source;
-                      setStagedContent({ source: srcName, content: newContent });
-                      // Keep the pasted-text hard source in sync
-                      setPastedTexts(prev => {
-                        const tag = `[FROM ANNOUNCEMENT: ${srcName}]\n`;
-                        const kept = prev.filter(t => !t.startsWith(tag));
-                        return [...kept, `${tag}${newContent}`];
-                      });
-                    }}
-                    style={{ width: '100%', minHeight: '300px', padding: '16px 20px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '13px', color: '#444', lineHeight: 1.7, fontFamily: 'inherit', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
-                  />
+                  {contentEditMode ? (
+                    <textarea
+                      value={stagedContent.content}
+                      onChange={e => {
+                        const newContent = e.target.value;
+                        const srcName = stagedContent.source;
+                        setStagedContent({ source: srcName, content: newContent });
+                        // Keep the pasted-text hard source in sync
+                        setPastedTexts(prev => {
+                          const tag = `[FROM ANNOUNCEMENT: ${srcName}]\n`;
+                          const kept = prev.filter(t => !t.startsWith(tag));
+                          return [...kept, `${tag}${newContent}`];
+                        });
+                      }}
+                      style={{ width: '100%', minHeight: '300px', padding: '16px 20px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '13px', color: '#444', lineHeight: 1.7, fontFamily: 'inherit', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  ) : (
+                    <div style={{ padding: '16px 20px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', minHeight: '300px', maxHeight: '500px', overflowY: 'auto', fontSize: '13px', color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {(() => {
+                        const sourceQuotes = stagedQuotes.filter(sq => sq.source === stagedContent.source).map(sq => sq.quote).filter(Boolean);
+                        if (sourceQuotes.length === 0) return stagedContent.content;
+                        // Sort by length descending so longer quotes match before shorter substrings
+                        const sorted = [...sourceQuotes].sort((a, b) => b.length - a.length);
+                        const escaped = sorted.map(q => q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                        const regex = new RegExp(`(${escaped.join('|')})`, 'g');
+                        const parts = stagedContent.content.split(regex);
+                        return parts.map((part, i) => {
+                          if (sourceQuotes.includes(part)) {
+                            return <mark key={i} style={{ background: 'rgba(206,147,216,0.35)', color: '#333', padding: '1px 3px', borderRadius: '2px', fontStyle: 'italic' }}>{part}</mark>;
+                          }
+                          return <span key={i}>{part}</span>;
+                        });
+                      })()}
+                    </div>
+                  )}
                   <div style={{ fontSize: '11px', color: '#999', marginTop: '6px', fontFamily: 'monospace' }}>
                     {stagedContent.content.split(/\s+/).filter(Boolean).length} words • {stagedContent.content.length} characters
+                    {stagedQuotes.filter(sq => sq.source === stagedContent.source).length > 0 && ` • ${stagedQuotes.filter(sq => sq.source === stagedContent.source).length} quote(s) highlighted`}
                   </div>
                 </div>
               )}
