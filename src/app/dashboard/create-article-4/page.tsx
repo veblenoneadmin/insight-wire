@@ -68,7 +68,7 @@ export default function CreateArticle4Page() {
   const [editMode, setEditMode]             = useState(false);
   const [viewingAnn, setViewingAnn]         = useState<number | null>(null);
   const [annQuotes, setAnnQuotes]           = useState<Record<number, string[]>>({});
-  const [selectedText, setSelectedText]     = useState('');
+  const [ctxMenu, setCtxMenu]               = useState<{ x: number; y: number; text: string } | null>(null);
 
   // ── Staged Quotes (shown in output panel for editing) ───
   type StagedQuote = { source: string; quote: string; placement: string };
@@ -861,7 +861,7 @@ export default function CreateArticle4Page() {
 
       {/* ── View Announcement Content Modal ────────────────── */}
       {viewingAnn !== null && announcementContents[viewingAnn] && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setViewingAnn(null); setSelectedText(''); }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => { setViewingAnn(null); setCtxMenu(null);}}>
           <div style={{ background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '12px', width: '720px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
 
             {/* Header */}
@@ -870,45 +870,28 @@ export default function CreateArticle4Page() {
                 <span style={{ fontFamily: 'monospace', fontSize: '9px', padding: '2px 6px', borderRadius: '3px', background: 'rgba(206,147,216,0.2)', color: '#ce93d8' }}>ANN</span>
                 <span style={{ fontFamily: 'monospace', fontSize: '12px', color: VS.text0, fontWeight: 600 }}>{announcementNames[viewingAnn]}</span>
               </div>
-              <button onClick={() => { setViewingAnn(null); setSelectedText(''); }} style={{ background: 'transparent', border: 'none', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
+              <button onClick={() => { setViewingAnn(null); setCtxMenu(null);}} style={{ background: 'transparent', border: 'none', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={16} /></button>
             </div>
 
             {/* Instructions */}
             <div style={{ padding: '8px 18px', background: VS.bg2, borderBottom: `1px solid ${VS.border}`, fontSize: '10px', color: VS.text2, fontFamily: 'monospace' }}>
-              Select any text below and click &quot;Save as Quote&quot; to add it to the article quotes.
+              Highlight any text and right-click to copy or save as quote.
             </div>
 
             {/* Content (selectable) */}
             <div
-              onMouseUp={() => {
+              onContextMenu={(e) => {
                 const sel = window.getSelection();
                 const text = sel ? sel.toString().trim() : '';
-                setSelectedText(text);
+                if (text) {
+                  e.preventDefault();
+                  setCtxMenu({ x: e.clientX, y: e.clientY, text });
+                }
               }}
               style={{ flex: 1, overflowY: 'auto', padding: '18px', fontSize: '12px', color: VS.text1, lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace', userSelect: 'text', cursor: 'text' }}
             >
               {announcementContents[viewingAnn]}
             </div>
-
-            {/* Selection toolbar */}
-            {selectedText && (
-              <div style={{ padding: '10px 18px', background: 'rgba(206,147,216,0.08)', borderTop: `1px solid ${VS.border}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ flex: 1, fontSize: '11px', color: VS.text1, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>&ldquo;{selectedText.slice(0, 80)}{selectedText.length > 80 ? '…' : ''}&rdquo;</div>
-                <button
-                  onClick={() => {
-                    setAnnQuotes(prev => ({
-                      ...prev,
-                      [viewingAnn]: [...(prev[viewingAnn] || []), selectedText],
-                    }));
-                    setSelectedText('');
-                    window.getSelection()?.removeAllRanges();
-                  }}
-                  style={{ fontFamily: 'monospace', fontSize: '10px', padding: '5px 12px', borderRadius: '4px', border: 'none', background: '#ce93d8', color: '#fff', cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}
-                >
-                  + Save as Quote
-                </button>
-              </div>
-            )}
 
             {/* Saved quotes for this announcement */}
             {(annQuotes[viewingAnn] || []).length > 0 && (
@@ -948,7 +931,7 @@ export default function CreateArticle4Page() {
                     });
                     setStagedContent({ source: srcName, content: srcContent });
                     setViewingAnn(null);
-                    setSelectedText('');
+                    setCtxMenu(null);
                   }}
                   style={{ fontFamily: 'monospace', fontSize: '11px', padding: '8px 20px', borderRadius: '6px', border: 'none', background: VS.accent, color: '#fff', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
@@ -958,6 +941,47 @@ export default function CreateArticle4Page() {
             )}
           </div>
         </div>
+      )}
+
+      {/* ── Right-Click Context Menu ───────────────────────── */}
+      {ctxMenu && viewingAnn !== null && (
+        <>
+          <div
+            onClick={() => setCtxMenu(null)}
+            onContextMenu={(e) => { e.preventDefault(); setCtxMenu(null); }}
+            style={{ position: 'fixed', inset: 0, zIndex: 1100 }}
+          />
+          <div style={{
+            position: 'fixed',
+            left: Math.min(ctxMenu.x, typeof window !== 'undefined' ? window.innerWidth - 180 : ctxMenu.x),
+            top: Math.min(ctxMenu.y, typeof window !== 'undefined' ? window.innerHeight - 100 : ctxMenu.y),
+            zIndex: 1101, background: VS.bg1, border: `1px solid ${VS.border}`, borderRadius: '6px', overflow: 'hidden', minWidth: '160px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          }}>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(ctxMenu.text);
+                setCtxMenu(null);
+                window.getSelection()?.removeAllRanges();
+              }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', background: 'transparent', border: 'none', color: VS.text0, fontFamily: 'monospace', fontSize: '11px', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = VS.bg2}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >Copy</button>
+            <button
+              onClick={() => {
+                setAnnQuotes(prev => ({
+                  ...prev,
+                  [viewingAnn]: [...(prev[viewingAnn] || []), ctxMenu.text],
+                }));
+                setCtxMenu(null);
+                window.getSelection()?.removeAllRanges();
+              }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', background: 'transparent', border: 'none', color: '#ce93d8', fontFamily: 'monospace', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(206,147,216,0.08)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >Save as Quote</button>
+          </div>
+        </>
       )}
     </div>
   );
