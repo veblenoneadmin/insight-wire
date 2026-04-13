@@ -121,7 +121,7 @@ export default function CreateArticle4Page() {
         setError(e instanceof Error ? e.message : `Failed to process ${file.name}`);
       }
     }
-    setAddModalOpen(false);
+    // Stay in modal so user can see uploaded files and view contents
   };
 
   const removeAnnouncement = (idx: number) => {
@@ -635,16 +635,39 @@ export default function CreateArticle4Page() {
 
               {/* Announcement Tab */}
               {addModalTab === 'announcement' && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '20px 0' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(206,147,216,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Upload size={24} style={{ color: '#ce93d8' }} />
+                <div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '12px 0 18px', borderBottom: announcementNames.length > 0 ? `1px solid ${VS.border}` : 'none', marginBottom: announcementNames.length > 0 ? '14px' : 0 }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(206,147,216,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Upload size={20} style={{ color: '#ce93d8' }} />
+                    </div>
+                    <div style={{ fontSize: '12px', color: VS.text2, textAlign: 'center' }}>ASX announcements, press releases, company filings</div>
+                    <label style={{ fontFamily: 'monospace', fontSize: '11px', padding: '8px 18px', borderRadius: '6px', background: '#ce93d8', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
+                      Choose PDF, DOCX, or TXT
+                      <input type="file" accept=".pdf,.doc,.docx,.txt" multiple style={{ display: 'none' }} onChange={e => addModalAnnouncementSource(e.target.files)} />
+                    </label>
                   </div>
-                  <div style={{ fontSize: '13px', color: VS.text1, textAlign: 'center' }}>Upload an announcement</div>
-                  <div style={{ fontSize: '11px', color: VS.text2, textAlign: 'center' }}>ASX announcements, press releases, company filings</div>
-                  <label style={{ fontFamily: 'monospace', fontSize: '11px', padding: '8px 18px', borderRadius: '6px', background: '#ce93d8', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
-                    Choose PDF, DOCX, or TXT
-                    <input type="file" accept=".pdf,.doc,.docx,.txt" multiple style={{ display: 'none' }} onChange={e => addModalAnnouncementSource(e.target.files)} />
-                  </label>
+
+                  {announcementNames.length > 0 && (
+                    <div>
+                      <label style={lbl}>Uploaded Announcements</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {announcementNames.map((name, i) => (
+                          <div key={`modal-ann-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 10px', background: VS.bg2, border: `1px solid ${VS.border}`, borderRadius: '4px', fontSize: '11px', color: VS.text1, fontFamily: 'monospace' }}>
+                            <span style={{ fontFamily: 'monospace', fontSize: '8px', padding: '1px 4px', borderRadius: '2px', background: 'rgba(206,147,216,0.2)', color: '#ce93d8', flexShrink: 0 }}>ANN</span>
+                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                            <button onClick={() => setViewingAnn(i)} style={{ fontFamily: 'monospace', fontSize: '9px', padding: '3px 8px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', flexShrink: 0 }}>View</button>
+                            <button onClick={() => removeAnnouncement(i)} style={{ width: '18px', height: '18px', borderRadius: '3px', border: `1px solid ${VS.border}`, background: 'transparent', color: VS.text2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <button onClick={() => setAddModalOpen(false)}
+                          style={{ fontFamily: 'monospace', fontSize: '11px', padding: '8px 18px', borderRadius: '6px', border: 'none', background: VS.accent, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
