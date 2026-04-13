@@ -595,29 +595,30 @@ export default function CreateArticle4Page() {
                         <span style={{ fontFamily: 'monospace', fontSize: '10px', padding: '2px 8px', borderRadius: '3px', background: 'rgba(206,147,216,0.2)', color: '#a055b8' }}>ANN</span>
                         {stagedContent.source}
                       </h2>
-                      <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>Full announcement content — highlighted text indicates saved quotes.</p>
+                      <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>Full announcement content (editable) — used as source material for the article. Quotes above are flagged for required placement.</p>
                     </div>
                     <button
                       onClick={() => setStagedContent(null)}
                       style={{ fontFamily: 'monospace', fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: '1px solid #ddd', background: '#fff', color: '#666', cursor: 'pointer' }}
-                    >Hide content</button>
+                    >Hide</button>
                   </div>
-                  <div style={{ padding: '16px 20px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', maxHeight: '400px', overflowY: 'auto', fontSize: '13px', color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {(() => {
-                      // Highlight quotes from this source in the content
-                      const sourceQuotes = stagedQuotes.filter(sq => sq.source === stagedContent.source).map(sq => sq.quote);
-                      if (sourceQuotes.length === 0) return stagedContent.content;
-                      // Build regex matching any of the quotes
-                      const escaped = sourceQuotes.map(q => q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                      const regex = new RegExp(`(${escaped.join('|')})`, 'g');
-                      const parts = stagedContent.content.split(regex);
-                      return parts.map((part, i) => {
-                        if (sourceQuotes.includes(part)) {
-                          return <mark key={i} style={{ background: 'rgba(206,147,216,0.3)', color: '#333', padding: '1px 2px', borderRadius: '2px' }}>{part}</mark>;
-                        }
-                        return <span key={i}>{part}</span>;
+                  <textarea
+                    value={stagedContent.content}
+                    onChange={e => {
+                      const newContent = e.target.value;
+                      const srcName = stagedContent.source;
+                      setStagedContent({ source: srcName, content: newContent });
+                      // Keep the pasted-text hard source in sync
+                      setPastedTexts(prev => {
+                        const tag = `[FROM ANNOUNCEMENT: ${srcName}]\n`;
+                        const kept = prev.filter(t => !t.startsWith(tag));
+                        return [...kept, `${tag}${newContent}`];
                       });
-                    })()}
+                    }}
+                    style={{ width: '100%', minHeight: '300px', padding: '16px 20px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '13px', color: '#444', lineHeight: 1.7, fontFamily: 'inherit', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ fontSize: '11px', color: '#999', marginTop: '6px', fontFamily: 'monospace' }}>
+                    {stagedContent.content.split(/\s+/).filter(Boolean).length} words • {stagedContent.content.length} characters
                   </div>
                 </div>
               )}
